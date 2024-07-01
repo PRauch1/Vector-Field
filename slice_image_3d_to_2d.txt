@@ -1,0 +1,69 @@
+
+slice_image_3d_to_2d = function(slices=100, axis=3, t1,t2,t21,t_fwd,mywarpedimage,jac){
+  if(axis==1){
+    subs_t1 = t1[slices,,]
+    subs_t2 = t2[slices,,]
+    subs_t21 = t21[slices,,]
+    subs_t1 = matrix(subs_t1,nrow=dim(t1)[2],ncol=dim(t1)[3])	
+    subs_t2 = matrix(subs_t2,nrow=dim(t1)[2],ncol=dim(t1)[3])
+    subs_t21 = matrix(subs_t21,nrow=dim(t1)[2],ncol=dim(t1)[3])
+    if(data.class(t_fwd)!="list"){
+      t_fwd_1 = (t_fwd[2,,,][slices,,])
+      t_fwd_2 = (t_fwd[3,,,][slices,,])
+    }	
+    else {
+      t_fwd_1 = t_fwd$dti_y[slices,,]
+      t_fwd_2 = t_fwd$dti_z[slices,,]
+    }
+    subs_mywarpedimage = mywarpedimage[slices,,]
+    subs_mywarpedimage = matrix(subs_mywarpedimage,nrow=dim(t1)[2],ncol=dim(t1)[3])
+    subs_jac = jac[slices,,]
+    subs_jac = matrix(subs_jac,nrow=dim(t1)[2],ncol=dim(t1)[3])
+  }
+  if(axis==2){
+    subs_t1 = t1[,slices,]
+    subs_t2 = t2[,slices,]
+    subs_t21 = t21[,slices,]
+    subs_t1 = matrix(subs_t1,nrow=dim(t1)[1],ncol=dim(t1)[3])
+    subs_t2 = matrix(subs_t2,nrow=dim(t1)[1],ncol=dim(t1)[3])
+    subs_t21 = matrix(subs_t21,nrow=dim(t1)[1],ncol=dim(t1)[3])
+    if(data.class(t_fwd)!="list"){
+      t_fwd_1 = (t_fwd[1,,,][,slices,])
+      t_fwd_2 = (t_fwd[3,,,][,slices,])
+    }	
+    else {
+      t_fwd_1 = t_fwd$dti_x[,slices,]
+      t_fwd_2 = t_fwd$dti_z[,slices,]
+    }
+    subs_mywarpedimage = mywarpedimage[,slices,]
+    subs_mywarpedimage = matrix(subs_mywarpedimage,nrow=dim(t1)[1],ncol=dim(t1)[3])
+    subs_jac = jac[,slices,]
+    subs_jac = matrix(subs_jac,nrow=dim(t1)[1],ncol=dim(t1)[3])
+  }
+  if(axis==3){
+    subs_t1 = t1[,,slices]
+    subs_t2 = t2[,,slices]
+    subs_t21 = t21[,,slices]
+    subs_t1 = matrix(subs_t1,nrow=dim(t1)[1],ncol=dim(t1)[2])
+    subs_t2 = matrix(subs_t2,nrow=dim(t1)[1],ncol=dim(t1)[2])
+    subs_t21 = matrix(subs_t21,nrow=dim(t1)[1],ncol=dim(t1)[2])
+    if(data.class(t_fwd)!="list"){
+      t_fwd_1 = (t_fwd[1,,,][,,slices])
+      t_fwd_2 = (t_fwd[2,,,][,,slices])
+    }
+    else {
+      t_fwd_1 = t_fwd$dti_x[,,slices]
+      t_fwd_2 = t_fwd$dti_y[,,slices]
+    }
+    subs_mywarpedimage = mywarpedimage[,,slices]
+    subs_mywarpedimage = matrix(subs_mywarpedimage,nrow=dim(t1)[1],ncol=dim(t1)[2])
+    subs_jac = jac[,,slices]
+    subs_jac = matrix(subs_jac,nrow=dim(t1)[1],ncol=dim(t1)[2])
+  }
+  
+  output_list = list(subs_t1=subs_t1, subs_t2=subs_t2, subs_t21=subs_t21, 
+                     t_fwd_1=t_fwd_1, t_fwd_2=t_fwd_2, 
+                     subs_mywarpedimage=subs_mywarpedimage,
+                     subs_jac=subs_jac)
+  return(output_list)
+}

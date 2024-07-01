@@ -1,0 +1,17 @@
+
+check_axis_orientation = function(p_axis_direction=c(1,0,0,0,-1,0,0,0,1), p_axis_origin=c(-90,126,-72)){
+  for(p_id in names(metadata_list)){
+    stopifnot(as.numeric(metadata_list[[p_id]]$output_axis_orientation_list$axis_direction_t1)==p_axis_direction)
+    stopifnot(as.numeric(metadata_list[[p_id]]$output_axis_orientation_list$axis_direction_t2)==p_axis_direction)
+    stopifnot(as.numeric(metadata_list[[p_id]]$output_axis_orientation_list$axis_direction_t_fwd)==p_axis_direction)
+    stopifnot(as.numeric(metadata_list[[p_id]]$output_axis_orientation_list$axis_direction_t_inv)==p_axis_direction)
+
+    stopifnot((metadata_list[[p_id]]$output_axis_orientation_list$axis_origin_t1)==p_axis_origin)
+    stopifnot((metadata_list[[p_id]]$output_axis_orientation_list$axis_origin_t2)==p_axis_origin)
+    stopifnot((metadata_list[[p_id]]$output_axis_orientation_list$axis_origin_t_fwd)==p_axis_origin)
+    stopifnot((metadata_list[[p_id]]$output_axis_orientation_list$axis_origin_t_inv)==p_axis_origin)
+
+    cat(paste0("\nCheck for p_id: ",p_id," successfully completed!\n"))
+  }
+  return(1)
+}

@@ -1,0 +1,45 @@
+
+export_results = function(patient_id = 460,
+                          transf = "SyN",
+                          region = "Allocortex",
+                          p_gradStep = 0.2, 
+                          p_flowSigma = 3, 
+                          p_totalSigma = 0){
+    # Perform registration
+    reg = perform_registration(patient_id=patient_id, 
+                               transf=transf, 
+                               region=region,
+                               p_gradStep = p_gradStep, 
+                               p_flowSigma = p_flowSigma, 
+                               p_totalSigma = p_totalSigma)
+ 
+    # Assign results to variables
+    metadata_export = reg$output_metadata_list
+    metadata_export$region = region
+    reg=reg$output_list
+
+    t1_export = reg$t1[,,]
+    t2_export = reg$t2[,,]
+    t21_export = reg$t21[,,]
+    t_fwd_export = reg$t_fwd[,,]
+    t_inv_export = reg$t_inv[,,]
+    mywarpedimage_export = reg$mywarpedimage[,,]
+    jac_export = reg$jac[,,]
+    
+    # Set path for export 
+    target_path = "MRI Images/export_results_YYYYMMDD/"
+
+    # Save results by using consistent prefixes and suffixes
+    file_prefix = paste0("P_",patient_id)
+    file_suffix = paste0(transf,".rda")
+    
+    save(t1_export,file=paste0(target_path,file_prefix,"_t1_",file_suffix))
+    save(t2_export,file=paste0(target_path,file_prefix,"_t2_",file_suffix))
+    save(t21_export,file=paste0(target_path,file_prefix,"_t21_",file_suffix))
+    save(t_fwd_export,file=paste0(target_path,file_prefix,"_t_fwd_",file_suffix))
+    save(t_inv_export,file=paste0(target_path,file_prefix,"_t_inv_",file_suffix))
+    save(mywarpedimage_export,file=paste0(target_path,file_prefix,"_mywarpedimage_",file_suffix))
+    save(jac_export,file=paste0(target_path,file_prefix,"_jac_",file_suffix))
+
+    save(metadata_export,file=paste0(target_path,file_prefix,"_metadata_",file_suffix))	
+}

@@ -1,0 +1,22 @@
+
+source(file="C:/Users/<Path to Functions>/import_multiple_results.R")
+
+m = c()
+d1 = c()
+d2 = c()
+i=0
+d_diff_in_days = c()
+
+for(l in metadata_list){
+  i=i+1
+  m[i] = l$region
+  d1[i] = l$date_t1$date_t1
+  d2[i] = l$date_t2$date_t2
+  d_diff_in_days[i] = as.numeric(as.Date(d2[i], format = "%Y%m%d")-as.Date(d1[i], format = "%Y%m%d"))
+}
+m
+d_diff_in_days
+df_metadata = data.frame(p_id=names(metadata_list),region=m,d1=d1,d2=d2,d_diff_in_days=d_diff_in_days)
+df_metadata
+
+#save(df_metadata,file="C:/Users/<Path to Datasets>/Datasets/df_metadata.rda")

@@ -1,0 +1,42 @@
+
+cat("Import DTI Atlas...\n")
+
+library("oro.nifti")
+
+path = "C:/Users/<Path to Data>/"
+fname_fa = "IITmean_FA.nii"
+fname_e_vec = "IITmean_V1.nii.gz"
+fname_e_val = "IITmean_L1.nii.gz"
+fname_tensor = "IITmean_tensor.nii.gz"
+
+(tensor = readNIfTI(paste(path,fname_tensor,sep="")))
+(e_vec = readNIfTI(paste(path,fname_e_vec,sep="")))
+(e_val = readNIfTI(paste(path,fname_e_val,sep="")))
+(fa = readNIfTI(paste(path,fname_fa,sep="")))
+
+# Check for correct image orientation
+sform_matrix = matrix(c(-1,0,0,90,0,1,0,-126,0,0,1,-72),ncol=4,byrow = T)
+stopifnot(all(sform(tensor) == sform_matrix))
+stopifnot(all(sform(e_vec) == sform_matrix))
+stopifnot(all(sform(e_val) == sform_matrix))
+stopifnot(all(sform(fa) == sform_matrix))
+
+cat("\nPassed Image Orientation Check.\n")
+
+
+# Cut off redundant slices
+
+    e_vec_cutted = e_vec[-182,-218,-182,]
+    e_val_cutted = e_val[-182,-218,-182]
+    fa_cutted = fa[-182,-218,-182]
+    
+    dim(e_vec)
+    dim(e_vec_cutted)
+    dim(e_val)
+    dim(e_val_cutted)
+    
+    e_vec = e_vec_cutted
+    e_val = e_val_cutted
+    fa = fa_cutted
+
+cat("\nFINISHED!\n\n")

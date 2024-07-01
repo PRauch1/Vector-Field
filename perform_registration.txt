@@ -1,0 +1,91 @@
+
+perform_registration = function(patient_id="446", 
+                                region="Allocortex",
+                                transf = "SyN", 
+                                p_gradStep = 0.2, 
+                                p_flowSigma = 3, 
+                                p_totalSigma = 0
+                                ){
+
+    file_name_t1 = get_file_name(patient_id, date_choice="t1", region=region)
+    file_name_t2 = get_file_name(patient_id, date_choice="t2", region=region)
+    
+    # Extract date
+    date_t1 = sub(".*_(\\d{8})_.*", "\\1", file_name_t1)
+    date_t1_year = substr(date_t1, start = 1, stop = 4)
+    date_t1_month = substr(date_t1, start = 5, stop = 6)
+    date_t1_day = substr(date_t1, start = 7, stop = 8)
+    date_t1 = list(date_t1=date_t1, date_t1_year=date_t1_year, date_t1_month=date_t1_month,
+                   date_t1_day=date_t1_day)
+    date_t2 = sub(".*_(\\d{8})_.*", "\\1", file_name_t2)
+    date_t2_year = substr(date_t2, start = 1, stop = 4)
+    date_t2_month = substr(date_t2, start = 5, stop = 6)
+    date_t2_day = substr(date_t2, start = 7, stop = 8)
+    date_t2 = list(date_t2=date_t2, date_t2_year=date_t2_year, date_t2_month=date_t2_month, 
+                   date_t2_day=date_t2_day)
+
+    library(ANTsR)
+    
+    if(!is.null(file_name_t1) & !is.null(file_name_t2)){
+    
+        # Load images
+        t1 = antsImageRead(paste0("MRI Images/",region,"/",file_name_t1))
+        t2 = antsImageRead(paste0("MRI Images/",region,"/",file_name_t2))
+
+        # Get image orientation informations
+        axis_direction_t1 = direction(t1)
+        axis_origin_t1    = ANTsRCore::origin(t1)
+        axis_direction_t2 = direction(t2)
+        axis_origin_t2    = ANTsRCore::origin(t2)
+        
+        # Compute true deformation field
+        t21 = (t2-t1)
+        
+        # Perform registration
+        if(transf %in% c("SyN","SyNCC")){
+            # Different versions: 
+                    # ...
+            # V_XY: Go from T1 to T2
+            reg = antsRegistration(fixed=t1, moving=t2, verbose=T, 
+                                            typeofTransform=transf)
+        }
+        else if(transf=="Elastic"){
+            reg = antsRegistration(fixed=t1, moving=t2, verbose=T, 
+                                            typeofTransform=transf, gradStep = p_gradStep, 
+                                            flowSigma = p_flowSigma, totalSigma = p_totalSigma)
+        }
+        else stop("Invalid Transformation Model!")
+
+        # Get tranformations:
+        t_fwd = antsImageRead(reg$fwdtransforms[1])
+            axis_direction_t_fwd = direction(t_fwd)
+            axis_origin_t_fwd    = ANTsRCore::origin(t_fwd)
+        t_inv = antsImageRead(reg$invtransforms[2])
+            axis_direction_t_inv = direction(t_inv)
+            axis_origin_t_inv    = ANTsRCore::origin(t_inv)
+        
+        # Create warped image and jacobian matrix
+        mywarpedimage = antsApplyTransforms( fixed=t1, moving=t2, transformlist=reg$fwdtransforms )
+        jac = createJacobianDeterminantImage(t1, t_fwd, 1)
+        
+        # Save results in list
+        output_list = list(t1=t1, t2=t2, t21=t21, reg=reg, t_fwd=t_fwd, t_inv=t_inv, mywarpedimage=mywarpedimage, jac=jac)
+        output_axis_orientation_list = list(axis_direction_t1=axis_direction_t1,
+                                                axis_direction_t2=axis_direction_t2,
+                                                axis_direction_t_fwd=axis_direction_t_fwd,
+                                                axis_direction_t_inv=axis_direction_t_inv,
+                                                axis_origin_t1=axis_origin_t1,
+                                                axis_origin_t2=axis_origin_t2,
+                                                axis_origin_t_fwd=axis_origin_t_fwd,
+                                                axis_origin_t_inv=axis_origin_t_inv)
+                                                
+        output_metadata_list = list(file_name_t1=file_name_t1, file_name_t2=file_name_t2,
+                                        date_t1=date_t1, date_t2=date_t2,
+                                        output_axis_orientation_list=output_axis_orientation_list
+                                        )
+        return(list(output_list=output_list, output_metadata_list=output_metadata_list))
+    }
+    else{
+        stop("No such Patient-ID found! Check the parameter patient_id.")
+    }
+}

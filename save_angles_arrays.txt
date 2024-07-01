@@ -1,0 +1,34 @@
+
+# Load data
+source(file="C:/Users/<Path to Data>/import_DTI_atlas().R")
+source(file="C:/Users/<Path to Data>/import_multiple_results().R")
+# Load functions
+source(file="C:/Users/<Path to Functions>/calculate_angle_between_vectors().R")
+source(file="C:/Users/<Path to Functions>/calculate_angles_array_for_patient().R")
+source(file="C:/Users/<Path to Functions>/calculate_angles_array_for_multiple_patients().R")
+# Load metadata
+load(file="C:/Users/<Path to Dataset>/Datasets/df_metadata.rda")
+
+region_vec = c("All","Allocortex","Mesocortex","Isocortex",df_metadata$p_id)
+
+# Initialize list
+angles_averaged_list = list()
+
+# Loop over regions
+for(region in region_vec){
+  
+  cat(paste0("\n\n######################### Computation of: ",region," #########################\n\n"))
+  
+  res = calculate_angles_array_for_multiple_patients(transf_angle_to_0_90=F,
+                                                     mask_variant="t1+t2", 
+                                                     use_eigenvectors=T,
+                                                     region=region)
+  angles_averaged = res$angles_averaged  
+  angles_averaged_list[[region]] = angles_averaged
+  
+  
+}
+
+# Save list
+save(angles_averaged_list, file = ".../angles_averaged_list_V_XY.rda")
+

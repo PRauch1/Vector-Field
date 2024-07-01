@@ -1,0 +1,31 @@
+
+import_results = function(patient_id="533",transf="SyN"){
+  
+  library(fields)
+
+  file_prefix = paste0("P_",patient_id)
+  file_suffix = paste0(transf,".rda")
+  
+  load(paste0(file_prefix,"_t1_",file_suffix))
+  load(paste0(file_prefix,"_t2_",file_suffix))
+  load(paste0(file_prefix,"_t21_",file_suffix))
+  load(paste0(file_prefix,"_t_fwd_",file_suffix))
+  load(paste0(file_prefix,"_t_inv_",file_suffix))
+  load(paste0(file_prefix,"_mywarpedimage_",file_suffix))
+  load(paste0(file_prefix,"_jac_",file_suffix))
+  load(paste0(file_prefix,"_metadata_",file_suffix))
+  
+  return(
+    list(
+      t1 = t1_export,
+      t2 = t2_export,
+      t21 = t21_export,
+      t_fwd = t_fwd_export,
+      t_inv = t_inv_export,
+      mywarpedimage = mywarpedimage_export,
+      jac = jac_export,
+      metadata = metadata_export
+    )
+  )
+  
+}

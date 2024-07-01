@@ -1,0 +1,106 @@
+
+calculate_angles_array_for_multiple_patients= function(transf_angle_to_0_90=T, 
+                                                       mask_variant="t1+t2", 
+                                                       use_eigenvectors=T,
+                                                       region = "All",
+                                                       ){
+  
+  # Get indices of patients for specific regions, specific p_ids or all patients
+    if(region %in% c("Allocortex","Mesocortex","Isocortex")){
+      idx_region = as.integer(row.names(df_metadata[df_metadata$region==region,]))
+      cat(paste0("\nAngles for region '",region,"' are calculated. (",length(idx_region)," patients)\n"))
+      cat("Patients are: ")
+      cat(paste0(df_metadata[idx_region,]$p_id),sep=", ")
+      cat("\n")
+    }
+    else if(region=="All"){
+      idx_region = as.integer(row.names(df_metadata))
+      cat(paste0("\nAngles for all regions are calculated. (",length(idx_region)," patients)\n"))
+    }
+    else if(region %in% df_metadata$p_id){
+      idx_region = as.integer(row.names(df_metadata[df_metadata$p_id==region,]))
+      cat(paste0("\nAngles for patient '",region,"' are calculated.\n"))
+    }
+    else {
+      stop(paste0(region," is an invalid argument for parameter 'region'!"))
+    }
+  
+  cat(paste0("\n",Sys.time(),"\n(1/2) - Compute angles for each patient ",  
+             if(use_eigenvectors){"based on 1st eigenvector of tensors"} 
+             else{"based on diagonal elements of tensors"},
+             " ...\n"))
+  
+  # Load multiple angles
+    t1_list_region   = t1_list[idx_region]
+    # Initialize lists
+    angles_list      = list()
+    angles_mask_list = list()
+    
+    library(progress)
+    pb = progress_bar$new(total = length(names(t1_list_region)))
+    # Loop over all p_id in region 
+    for(p_id in names(t1_list_region)){
+      cat(paste0("\n\tPatient: ",p_id," ...\n"))
+      res = calculate_angles_array_for_patient(p_id=p_id, 
+                                         transf_angle_to_0_90=transf_angle_to_0_90, 
+                                         mask_variant=mask_variant, 
+                                         use_eigenvectors = use_eigenvectors)
+      angles_list[[p_id]] = res$angles_array 
+      angles_mask_list[[p_id]] = res$angles_array_mask 
+      
+      pb$tick()
+    }
+    
+    
+  # Create a mask for glioma voxels
+    sum_angles_mask_list = Reduce(`+`, angles_mask_list)
+    
+    overall_angles_mask = sum_angles_mask_list
+    overall_angles_mask[overall_angles_mask>0]=1
+    
+    dim_overall_angles_mask = dim(overall_angles_mask)
+    stopifnot(length(dim_overall_angles_mask)==4)
+    
+  
+    
+  cat(paste0("\n",Sys.time(),"\n(2/2) - Compute average angles...\n"))
+
+  # Compute average angles
+    angles_summed_up = array(NA,dim=dim_overall_angles_mask)
+    angles_count_na = array(NA,dim=dim_overall_angles_mask)
+    angles_averaged = array(NA,dim=dim_overall_angles_mask)
+    
+    n_lists = length(angles_list)
+    
+    for(p in 1:(dim_overall_angles_mask[1]*
+                dim_overall_angles_mask[2]*
+                dim_overall_angles_mask[3])){
+      if(overall_angles_mask[p]==1){
+        sum_angle_p = 0
+        sum_is_na_p = 0
+        for(l in 1:n_lists){
+          if(is.na(angles_list[[l]][p])){
+            sum_is_na_p=sum_is_na_p+1
+          }
+          else{
+            sum_angle_p = sum_angle_p + angles_list[[l]][p]
+          }
+        }
+        angles_summed_up[p] = sum_angle_p 
+        angles_count_na[p] = sum_is_na_p
+        angles_averaged[p] = sum_angle_p/(n_lists-sum_is_na_p)
+      }
+    }
+    
+  
+  cat(paste0("\n",Sys.time(),"\nFINISHED!\n"))
+    
+  output = list(angles_list=angles_list,
+                angles_mask_list=angles_mask_list,
+                overall_angles_mask=overall_angles_mask,
+                
+                angles_summed_up=angles_summed_up, 
+                angles_count_na=angles_count_na, 
+                angles_averaged=angles_averaged)
+  return(output)
+}

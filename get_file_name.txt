@@ -1,0 +1,36 @@
+
+get_file_name = function(patient_num, date_choice,region="Allocortex") {
+
+  # Get a list of all file names in the current directory
+  path=paste0("MRI Images/",region)
+  file_names = list.files(path)
+   
+  # Use regex to extract the patient number and date from each file name
+  patient_nums = gsub(".*_(\\d+)\\^.*", "\\1", file_names)
+  dates = sub(".*_(\\d{8})_.*", "\\1", file_names)
+  
+  # Find the indices of file names that match the patient number
+  matches = which(patient_nums == patient_num)
+  
+  # If there are no matches, return NULL
+  if (length(matches) == 0) {
+    return(NULL)
+  }
+  
+  # If there is only one match, return that file name
+  if (length(matches) == 1) {
+    return(file_names[matches])
+  }
+  
+  # If there are multiple matches, choose the file name based on the date choice
+  if (date_choice == "t1") {
+    date_indices = order(dates[matches])
+  } else if (date_choice == "t2") {
+    date_indices = order(dates[matches], decreasing = TRUE)
+  } else {
+    # If an invalid date choice is given, return NULL
+    return(NULL)
+  }
+  
+  return(file_names[matches[date_indices[1]]])
+}

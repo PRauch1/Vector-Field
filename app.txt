@@ -1,0 +1,526 @@
+
+initial_run = F # Set to 'T' to beforehand load data and functions, after first run set to 'F'
+just_plot_overview_and_deformations = F # Only set to 'T' if just those informations are of interest 
+
+if(initial_run){
+
+  library(shiny)
+  library(ggplot2)
+
+####### Load and Adapt Data and Functions #########
+
+  # DTI
+  source(file="C:/Users/<Path to Functions>/import_DTI_atlas().R")
+  # MR
+  source(file="C:/Users/<Path to Functions>/import_multiple_results().R")
+  # MNI
+  source(file="C:/Users/<Path to Functions>/import_MNI.R")
+
+  # Angles
+    load(file = "C:/Users/<Path to Datasets>/Datasets/angles_averaged_list_V_XY.rda")
+  
+  # Metadata
+    load(file = "C:/Users/<Path to Datasets>/Datasets/df_metadata.rda")
+  
+  # Functions for Slice & Visualize
+  source(file="C:/Users/<Path to Functions>/slice_image_3d_to_2d().R")
+  source(file="C:/Users/<Path to Functions>/visualize_results().R")
+
+  # Replace 0 with NA for visualizing purposes
+  t1_list_v2 = t1_list
+  t2_list_v2 = t2_list
+  t21_list_v2 = t21_list
+  for(i in names(t1_list_v2)){
+    print(i)
+    # t1_list
+      t1_list_v2_i = t1_list_v2[[i]]
+      t1_list_v2_i = replace(t1_list_v2_i, t1_list_v2_i == 0, NA)
+      t1_list_v2[[i]] = t1_list_v2_i
+    # t2_list
+      t2_list_v2_i = t2_list_v2[[i]]
+      t2_list_v2_i = replace(t2_list_v2_i, t2_list_v2_i == 0, NA)
+      t2_list_v2[[i]] = t2_list_v2_i
+    # t21_list
+      t21_list_v2_i = t21_list_v2[[i]]
+      t21_list_v2_i = replace(t21_list_v2_i, t21_list_v2_i == 0, NA)
+      t21_list_v2[[i]] = t21_list_v2_i
+  }
+  
+  
+  # for Patient=='All'
+    print("Aggregate All")
+    t1_list_v2_all = Reduce(`+`, t1_list)
+    t1_list_v2_all = replace(t1_list_v2_all, t1_list_v2_all == 0, NA)
+  
+    t2_list_v2_all = Reduce(`+`, t2_list)
+    t2_list_v2_all = replace(t2_list_v2_all, t2_list_v2_all == 0, NA)
+  
+  
+  
+  # for Region=='Allocortex'
+    print("Aggregate Allocortex")
+    patient = "Allocortex"
+    idx_region = as.integer(row.names(df_metadata[df_metadata$region==patient,]))
+    
+    t1_list_v2_allocortex = t1_list[idx_region]
+    t1_list_v2_allocortex = Reduce(`+`, t1_list_v2_allocortex)
+    t1_list_v2_allocortex = replace(t1_list_v2_allocortex, t1_list_v2_allocortex == 0, NA)
+    
+    t2_list_v2_allocortex = t2_list[idx_region]
+    t2_list_v2_allocortex = Reduce(`+`, t2_list_v2_allocortex)
+    t2_list_v2_allocortex = replace(t2_list_v2_allocortex, t2_list_v2_allocortex == 0, NA)
+    
+    
+  # for Region=='Isocortex'
+    print("Aggregate Isocortex")
+    patient = "Isocortex"
+    idx_region = as.integer(row.names(df_metadata[df_metadata$region==patient,]))
+    
+    t1_list_v2_isocortex = t1_list[idx_region]
+    t1_list_v2_isocortex = Reduce(`+`, t1_list_v2_isocortex)
+    t1_list_v2_isocortex = replace(t1_list_v2_isocortex, t1_list_v2_isocortex == 0, NA)
+    
+    t2_list_v2_isocortex = t2_list[idx_region]
+    t2_list_v2_isocortex = Reduce(`+`, t2_list_v2_isocortex)
+    t2_list_v2_isocortex = replace(t2_list_v2_isocortex, t2_list_v2_isocortex == 0, NA)
+    
+    
+  # for Region=='Mesocortex'
+    print("Aggregate Mesocortex")
+    patient = "Mesocortex"
+    idx_region = as.integer(row.names(df_metadata[df_metadata$region==patient,]))
+    
+    t1_list_v2_mesocortex = t1_list[idx_region]
+    t1_list_v2_mesocortex = Reduce(`+`, t1_list_v2_mesocortex)
+    t1_list_v2_mesocortex = replace(t1_list_v2_mesocortex, t1_list_v2_mesocortex == 0, NA)
+    
+    t2_list_v2_mesocortex = t2_list[idx_region]
+    t2_list_v2_mesocortex = Reduce(`+`, t2_list_v2_mesocortex)
+    t2_list_v2_mesocortex = replace(t2_list_v2_mesocortex, t2_list_v2_mesocortex == 0, NA)
+    
+}
+
+
+####### UI #########
+
+ui =   navbarPage(
+  theme = bslib::bs_theme(version = 4, bootswatch = "spacelab"),
+  
+  # App title ----
+  titlePanel("Tumor Growth Analysis"),
+  
+    tabPanel("Panel 1",
+             sidebarLayout(
+             sidebarPanel(
+                selectInput('patient', c("All","Allocortex","Mesocortex","Isocortex",names(t1_list)),label="Patient")
+              ,
+                     selectInput('overlay', c("Angles","Time Point 1","Time Point 2","Time Points Delta"),label="Overlay Type")
+              ,
+                     selectInput('axis', c(1,2,3),label="Axis")
+              ,
+              uiOutput("slider_ui_slice_voxels")
+              ,
+              sliderInput(inputId = "crop_dim_1",
+                          label = "Crop Image Left <-> Right",
+                          min = 0,
+                          max = 217,
+                          value = c(10,170))
+              ,
+              sliderInput(inputId = "crop_dim_2",
+                          label = "Crop Image Bottom <-> Top",
+                          min = 0,
+                          max = 217,
+                          value = c(10,170))
+              
+              ,
+                checkboxInput(inputId = 'show_overlay',label = "Show Overlay", value = T)
+              ,
+                checkboxInput(inputId = 'angles_transf_0_90',label = "Transform Angles to [0,90]", value = T)
+              
+              , 
+              sliderInput(inputId = "scale_arrow_length",
+                          label = "Scale Arrow Length",
+                          min = 0.1,
+                          max = 2,
+                          value = 1)
+              
+              ,
+              actionButton("exit_btn", "Close the App")
+      
+            ), 
+            mainPanel(
+              if(just_plot_overview_and_deformations){
+                fluidRow(
+                column(width = 12,
+                       plotOutput(outputId = "image_plot", height = "600px",width = "700px")
+                ),
+                column(width = 12,
+                       plotOutput(outputId = "deformation_field", height = "600px",width = "700px")
+                )
+                )
+              }
+              else{
+                fluidRow(
+                  column(width = 6,
+                         plotOutput(outputId = "image_plot", height = "400px",width = "400px")
+                  ),
+                  column(width = 6,
+                         plotOutput(outputId = "hist_values", height = "400px",width = "400px")
+                  ),
+                  column(width = 6,
+                         plotOutput(outputId = "deformation_field", height = "400px",width = "400px")
+                  ),
+                  column(width = 6,
+                         plotOutput(outputId = "DTI", height = "400px",width = "400px")
+                  )
+                )
+              }
+              
+            )
+             )
+  )
+)
+
+####### Server #########
+
+server = function(input, output) {
+  
+  slice_data = function(slice_voxels,axis,patient,overlay){
+   
+    if(overlay=="Angles"){
+      overlay_array = angles_averaged_list[[patient]]
+      overlay_array = drop(overlay_array)
+      # Transforming scale of 0-180 to 0-90
+      if(input$angles_transf_0_90){         
+        overlay_array[overlay_array>90&!is.na(overlay_array)] = 180-overlay_array[overlay_array>90&!is.na(overlay_array)]
+      }
+    }
+    if(overlay=="Time Point 1"){
+        if(patient == "All"){
+          overlay_array = t1_list_v2_all
+        }
+      
+        else if(patient=="Allocortex"){
+          overlay_array = t1_list_v2_allocortex
+        }
+        else if(patient=="Isocortex"){
+          overlay_array = t1_list_v2_isocortex
+        }
+        else if(patient=="Mesocortex"){
+          overlay_array = t1_list_v2_mesocortex
+        }
+        else if(patient %in% names(t1_list)){
+          overlay_array = t1_list_v2[[patient]]
+        }
+        else stop("Invalid Argument for 'patient_id'")
+    }
+    if(overlay=="Time Point 2"){
+        if(patient == "All"){
+          overlay_array = t2_list_v2_all
+        }
+      
+        else if(patient=="Allocortex"){
+          overlay_array = t2_list_v2_allocortex
+        }
+        else if(patient=="Isocortex"){
+          overlay_array = t2_list_v2_isocortex
+        }
+        else if(patient=="Mesocortex"){
+          overlay_array = t2_list_v2_mesocortex
+        }
+
+        else if(patient %in% names(t1_list)){
+          overlay_array = t2_list_v2[[patient]]
+        }
+        else stop("Invalid Argument for 'patient_id'")
+    }
+    if(overlay=="Time Points Delta"){
+      overlay_array = t21_list_v2[[patient]]
+    }
+    
+    return(overlay_array)
+  }
+
+  
+  output$deformation_field = renderPlot({
+    
+    print(paste0("######### RUN at: ",Sys.time()," #########"))
+    
+    print("########## DEFORMATION ##########")
+    
+    if(input$patient %in% names(t1_list)){
+      t1 = t1_list[[input$patient]]
+      t2 = t2_list[[input$patient]]
+      t21 = t21_list[[input$patient]]
+      t_fwd = t_fwd_list[[input$patient]]
+        
+      # Transform deformations from LPS (ANTs) to LAS
+      t_fwd[2,,,] = (-1)*t_fwd[2,,,]
+
+      mywarpedimage = mywarpedimage_list[[input$patient]]
+      jac = jac_list[[input$patient]]
+    }
+    else{ stop("Invalid Input!")}
+    
+    visualize_results(axis=input$axis,
+                      show_vector_field=T,
+                      slices=input$slice_voxels,
+                      scale_arrow_length= input$scale_arrow_length,
+                      entire_vf = F,
+                      arrow_length_threshold = 0,
+                      t1=t1,t2=t2,t21=t21,t_fwd=t_fwd,mywarpedimage=mywarpedimage,jac=jac,
+                      crop_image_dim_1_from = input$crop_dim_1[1], crop_image_dim_1_to = input$crop_dim_1[2],
+                      crop_image_dim_2_from = input$crop_dim_2[1],crop_image_dim_2_to = input$crop_dim_2[2],
+                      p_main = "Derived Deformation Field",
+                      sign_a1_r = 1, 
+                      sign_a1_c = 1, 
+                      sign_a2_r = 1,
+                      sign_a2_c = 1,
+                      sign_a3_r = 1,
+                      sign_a3_c = 1)
+  })
+  
+  
+  output$DTI = renderPlot({
+    
+    print("########## DTI ##########")
+    
+    if(input$patient %in% names(t1_list)){
+      
+        dti_x = e_vec[,,,1]
+        dti_y = e_vec[,,,2]
+        dti_z = e_vec[,,,3]
+        
+        t1 = t1_list[[input$patient]]
+        t2 = t2_list[[input$patient]]
+        t21 = t21_list[[input$patient]]
+        t_fwd = list(dti_x=dti_x,dti_y=dti_y,dti_z=dti_z)
+        mywarpedimage = mywarpedimage_list[[input$patient]]
+        jac = jac_list[[input$patient]]
+
+        visualize_results(axis=input$axis,
+                          show_vector_field=T,
+                          slices=input$slice_voxels,
+                          scale_arrow_length=2,
+                          entire_vf = F, 
+                          arrow_length_threshold = 0,
+                          t1=t1,t2=t2,t21=t21,t_fwd=t_fwd,mywarpedimage=mywarpedimage,jac=jac,
+                          crop_image_dim_1_from = input$crop_dim_1[1], crop_image_dim_1_to = input$crop_dim_1[2],
+                          crop_image_dim_2_from = input$crop_dim_2[1],crop_image_dim_2_to = input$crop_dim_2[2],
+                          p_main = "Diffusion Tensor Image",
+                          sign_a1_r = 1, 
+                          sign_a1_c = 1, 
+                          sign_a2_r = 1,
+                          sign_a2_c = 1,
+                          sign_a3_r = 1,
+                          sign_a3_c = 1)
+    }    
+  })
+  
+  output$hist_values = renderPlot({
+    slice_voxels = input$slice_voxels
+    axis = input$axis
+    patient = input$patient
+    overlay = input$overlay
+    overlay_array=slice_data(slice_voxels,axis,patient,overlay)
+    
+    if(overlay=="Angles"){
+      
+      if(axis==1){
+        if(!all(is.na((overlay_array)[slice_voxels, 
+                                      input$crop_dim_1[1]:input$crop_dim_1[2], 
+                                      input$crop_dim_2[1]:input$crop_dim_2[2]
+                                      ]))){
+          hist(overlay_array[slice_voxels,
+                             input$crop_dim_1[1]:input$crop_dim_1[2], 
+                             input$crop_dim_2[1]:input$crop_dim_2[2]
+                             ], 
+               main=paste0("Histogram of Angles"),xlab="Angles")
+        }
+      }
+      if(axis==2){
+        if(!all(is.na((overlay_array)[input$crop_dim_1[1]:input$crop_dim_1[2],
+                                      slice_voxels,
+                                      input$crop_dim_2[1]:input$crop_dim_2[2]
+                                      ]))){
+          hist(overlay_array[input$crop_dim_1[1]:input$crop_dim_1[2],
+                             slice_voxels,
+                             input$crop_dim_2[1]:input$crop_dim_2[2]
+                             ], 
+               main=paste0("Histogram of Angles"),xlab="Angles")
+        }
+      }
+      if(axis==3){
+        if(!all(is.na((overlay_array)[input$crop_dim_1[1]:input$crop_dim_1[2], 
+                                      input$crop_dim_2[1]:input$crop_dim_2[2],
+                                      slice_voxels
+                                      ]))){
+          hist(overlay_array[input$crop_dim_1[1]:input$crop_dim_1[2], 
+                             input$crop_dim_2[1]:input$crop_dim_2[2],
+                             slice_voxels
+                             ], 
+               main=paste0("Histogram of Angles"),xlab="Angles")
+        }
+      }
+    }
+
+  })
+
+  output$image_plot = renderPlot({
+    
+    slice_voxels = input$slice_voxels
+    axis = input$axis
+    patient = input$patient
+    overlay = input$overlay
+    overlay_array=slice_data(slice_voxels,axis,patient,overlay)
+    
+    if(axis==1){
+    
+      image(MNI152[
+        slice_voxels,
+        input$crop_dim_1[1]:input$crop_dim_1[2], 
+        input$crop_dim_2[1]:input$crop_dim_2[2]
+        ],main=paste0(patient,": Sliced at 'i = ", slice_voxels,"'"),
+          xlab = "Posterior -------------------------- Anterior",
+          ylab = "Inferior -------------------------- Superior",
+          col=hcl.colors(10,palette = "gray"))
+      if(input$show_overlay){
+        if(!all(is.na((overlay_array)[
+           slice_voxels,
+           input$crop_dim_1[1]:input$crop_dim_1[2], 
+           input$crop_dim_2[1]:input$crop_dim_2[2]
+          ]))){
+          # if(overlay=="Angles"){
+            image.plot(overlay_array[
+              slice_voxels,
+              input$crop_dim_1[1]:input$crop_dim_1[2], 
+              input$crop_dim_2[1]:input$crop_dim_2[2]
+            ],add=T
+            )
+          }
+          
+      }
+    
+    } 
+
+    if(axis==2){
+
+      image(MNI152[
+        input$crop_dim_1[1]:input$crop_dim_1[2],
+        slice_voxels,
+        input$crop_dim_2[1]:input$crop_dim_2[2]
+      ],main=paste0(patient,": Sliced at 'j = ", slice_voxels,"'"),
+          xlab = "Right -------------------------- Left",
+          ylab = "Inferior -------------------------- Superior",
+            col=hcl.colors(10,palette = "gray"))
+      if(input$show_overlay){
+        if(!all(is.na((overlay_array)[
+          input$crop_dim_1[1]:input$crop_dim_1[2],
+          slice_voxels,
+          input$crop_dim_2[1]:input$crop_dim_2[2]
+          ]))){
+          image.plot(overlay_array[
+            input$crop_dim_1[1]:input$crop_dim_1[2],
+            slice_voxels,
+            input$crop_dim_2[1]:input$crop_dim_2[2]
+          ],add=T)
+        }
+      }
+      
+    }
+    
+    if(axis==3){
+
+      image(MNI152[
+        input$crop_dim_1[1]:input$crop_dim_1[2],
+        input$crop_dim_2[1]:input$crop_dim_2[2],
+        slice_voxels
+      ],main=paste0(patient,": Sliced at 'k = ", slice_voxels,"'"),
+        xlab = "Right -------------------------- Left",
+        ylab = " Posterior -------------------------- Anterior",
+      col=hcl.colors(10,palette = "gray"))
+      if(input$show_overlay){
+        if(!all(is.na((overlay_array)[
+          input$crop_dim_1[1]:input$crop_dim_1[2],
+          input$crop_dim_2[1]:input$crop_dim_2[2],
+          slice_voxels
+        ]))){
+          image.plot(overlay_array[
+            input$crop_dim_1[1]:input$crop_dim_1[2],
+            input$crop_dim_2[1]:input$crop_dim_2[2],
+            slice_voxels
+          ],add=T)
+        }
+      }
+      
+    } 
+    
+  })
+
+
+
+  
+  
+  output$slider_ui_slice_voxels = renderUI({
+    selected_value = input$axis
+    
+    # Use a switch statement to create the sliderInput based on the selected value
+    slider_settings = switch(selected_value,
+                              "1" = list(min = 1, max = 181, value = 100),
+                              "2" = list(min = 1, max = 217, value = 100),
+                              "3" = list(min = 1, max = 181, value = 100)
+    )
+    
+    sliderInput(inputId = "slice_voxels",
+                label = "Slice Voxels",
+                min = slider_settings$min, 
+                max = slider_settings$max, 
+                value = slider_settings$value)
+    
+  })
+  
+  output$slider_ui_crop_dim_1 = renderUI({
+    selected_value = input$axis
+    
+    # Use a switch statement to create the sliderInput based on the selected value
+    slider_settings = switch(selected_value,
+                              "1" = list(max = 217),
+                              "2" = list(max = 181),
+                              "3" = list(max = 181)
+    )
+    
+    sliderInput(inputId = "crop_dim_1",
+                label = "Crop Image Left <-> Right",
+                min = 0,
+                max = slider_settings$max, 
+                value = c(0,slider_settings$max))
+    
+  })
+  
+  output$slider_ui_crop_dim_2 = renderUI({
+    selected_value = input$axis
+    
+    # Use a switch statement to create the sliderInput based on the selected value
+    slider_settings = switch(selected_value,
+                              "1" = list(max = 181),
+                              "2" = list(max = 181),
+                              "3" = list(max = 217)
+    )
+    
+    sliderInput(inputId = "crop_dim_2",
+                label = "Crop Image Bottom <-> Top",
+                min = 0,
+                max = slider_settings$max, 
+                value = c(0,slider_settings$max))
+    
+  })
+  
+  observeEvent(input$exit_btn, {
+    stopApp()
+  })
+  
+}
+
+####### ShinyApp #########
+
+shinyApp(ui = ui, server = server)

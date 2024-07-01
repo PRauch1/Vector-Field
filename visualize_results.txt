@@ -1,0 +1,111 @@
+
+visualize_results = function(slices=100, axis=3, arrowhead_size = 0.05, scale_arrow_length =1,
+                             show_vector_field = F, entire_vf = F, just_show_jac = F, 
+                             arrowhead_angle=30, arrow_length_threshold = 0.05,
+                             t1,t2,t21,t_fwd,mywarpedimage,jac,
+                             crop_image_dim_1_from, crop_image_dim_1_to,
+                             crop_image_dim_2_from, crop_image_dim_2_to,
+                             p_main = "True Glioma Growth and Derived Vector Field",
+                             sign_a1_r = 1,
+                             sign_a1_c = 1,
+                             sign_a2_r = 1,
+                             sign_a2_c = 1,
+                             sign_a3_r = 1,
+                             sign_a3_c = 1
+                             ){
+  
+  subs = slice_image_3d_to_2d(slices=slices, axis=axis,
+                              t1=t1,t2=t2,t21=t21,t_fwd=t_fwd,mywarpedimage=mywarpedimage,jac=jac)
+  subs_t1 = subs$subs_t1[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to]
+  subs_t2 = subs$subs_t2[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to]
+  subs_t21 = subs$subs_t21[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to]
+  t_fwd_1 = subs$t_fwd_1[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to] * scale_arrow_length
+  t_fwd_2 = subs$t_fwd_2[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to] * scale_arrow_length
+
+  subs_mywarpedimage = subs$subs_mywarpedimage[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to]
+  subs_jac = subs$subs_jac[crop_image_dim_1_from:crop_image_dim_1_to,crop_image_dim_2_from:crop_image_dim_2_to]
+  
+  if(axis==1){ dim_1 = 2; dim_2 = 3 }
+  if(axis==2){ dim_1 = 1; dim_2 = 3 }
+  if(axis==3){ dim_1 = 1; dim_2 = 2 }			
+  dim_1_label = paste('Coordinate of Voxel on Dimension',dim_1,'(Rescaled to [0,1])')
+  dim_2_label = paste('Coordinate of Voxel on Dimension',dim_2,'(Rescaled to [0,1])')			
+  col_scale = rev(colorRampPalette(c("#FFFFFF", "#CC6600"))(14))
+  col_scale_2 = col_scale[7:14]
+  if(just_show_jac){
+    image.plot(subs_jac, main=paste('Jacobian Matrix - Sliced at Dimension',axis,'=',slices),
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale)
+  }
+  else if(!show_vector_field){
+    par(mfrow=c(2,3))
+    image.plot(subs_t1, main=paste('Glioma at Time 1 - Sliced at Dimension',axis,'=',slices),
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale_2) 
+    image.plot(subs_t2, main=paste('Glioma at Time 2 - Sliced at Dimension',axis,'=',slices),
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale_2)
+    image.plot(subs_t21, main='True Glioma Growth (Glioma at Time 2 - Glioma at Time 1)',
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale)
+    image.plot(t_fwd_1, main=paste('Positional Difference of Voxels along Dimension',dim_1,' (Horizontally)'),
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale)
+    image.plot(t_fwd_2, main=paste('Positional Difference of Voxels along Dimension',dim_2,' (Vertically)'),
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale)
+    image.plot(subs_mywarpedimage, 
+               main='Estimated Glioma Growth (Positional Differences applied to Glioma at Time 1)',
+               xlab = dim_1_label, ylab = dim_2_label, col=col_scale)					
+    par(mfrow=c(1,1))
+  }
+  else{ 
+    image.plot(subs_t21, 
+               main=p_main,
+               xlab = dim_1_label, ylab = dim_2_label, col=(col_scale))
+    if(entire_vf){
+      for(row_id in 1:dim(subs_t1)[1]){
+        for(col_id in 1:dim(subs_t1)[2]){
+          if(axis==1){
+            arrows(row_id/dim(subs_t1)[1], col_id/dim(subs_t1)[2], 
+                   (	row_id + sign_a1_r* t_fwd_1[row_id,col_id] )/dim(subs_t1)[1],
+                   (	col_id + sign_a1_c* t_fwd_2[row_id,col_id] )/dim(subs_t1)[2],
+                   length=arrowhead_size,angle=arrowhead_angle) }
+          if(axis==2){
+            arrows(row_id/dim(subs_t1)[1], col_id/dim(subs_t1)[2], 
+                   (	row_id + sign_a2_r* t_fwd_1[row_id,col_id] )/dim(subs_t1)[1],
+                   (	col_id + sign_a2_c* t_fwd_2[row_id,col_id] )/dim(subs_t1)[2],
+                   length=arrowhead_size,angle=arrowhead_angle) }
+          if(axis==3){
+            arrows(row_id/dim(subs_t1)[1], col_id/dim(subs_t1)[2], 
+                   (	row_id + sign_a3_r* t_fwd_1[row_id,col_id] )/dim(subs_t1)[1],
+                   (	col_id + sign_a3_c* t_fwd_2[row_id,col_id] )/dim(subs_t1)[2],
+                   length=arrowhead_size,angle=arrowhead_angle) }
+          
+        }
+      }
+    }
+    else{
+      for(row_id in 1:dim(subs_t1)[1]){
+        for(col_id in 1:dim(subs_t1)[2]){
+          if(subs_t1[row_id,col_id] != 0 | subs_t2[row_id,col_id] != 0){
+            
+            if(!(abs(t_fwd_1[row_id,col_id])<arrow_length_threshold & 
+                 abs(t_fwd_2[row_id,col_id])<arrow_length_threshold)){
+                  
+            if(axis==1){
+              arrows(row_id/dim(subs_t1)[1], col_id/dim(subs_t1)[2], 
+                     (	row_id + sign_a1_r* t_fwd_1[row_id,col_id] )/dim(subs_t1)[1],
+                     (	col_id + sign_a1_c* t_fwd_2[row_id,col_id] )/dim(subs_t1)[2],
+                     length=arrowhead_size,angle=arrowhead_angle) }
+            if(axis==2){
+              arrows(row_id/dim(subs_t1)[1], col_id/dim(subs_t1)[2], 
+                     (	row_id + sign_a2_r* t_fwd_1[row_id,col_id] )/dim(subs_t1)[1],
+                     (	col_id + sign_a2_c* t_fwd_2[row_id,col_id] )/dim(subs_t1)[2],
+                     length=arrowhead_size,angle=arrowhead_angle) }
+            if(axis==3){
+              arrows(row_id/dim(subs_t1)[1], col_id/dim(subs_t1)[2], 
+                     (	row_id + sign_a3_r* t_fwd_1[row_id,col_id] )/dim(subs_t1)[1],
+                     (	col_id + sign_a3_c* t_fwd_2[row_id,col_id] )/dim(subs_t1)[2],
+                     length=arrowhead_size,angle=arrowhead_angle) }
+            }
+          }
+        }
+      }
+    }
+  }
+}

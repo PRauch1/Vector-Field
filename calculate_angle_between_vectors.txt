@@ -1,0 +1,22 @@
+
+calculate_angle_between_vectors = function(v1, v2) {
+  # Calculate the dot product of v1 and v2
+  dot_product = sum(v1 * v2)
+  
+  # Calculate the magnitude of v1 and v2
+  magnitude_v1 = sqrt(sum(v1^2))
+  magnitude_v2 = sqrt(sum(v2^2))
+  
+  # Calculate the cosine of the angle between v1 and v2
+  cos_theta = dot_product / (magnitude_v1 * magnitude_v2)
+  
+  # Restrict the value of cos_theta to [-1,1]. otherwise sometimes 'NaN'
+  cos_theta = pmin(pmax(cos_theta,-1.0),1.0)
+  
+  # Calculate the angle between v1 and v2 in degrees
+  theta_degrees = acos(cos_theta) * 180 / pi
+  
+  # Return the angle between v1 and v2 in degrees
+  return(theta_degrees)
+  
+}
